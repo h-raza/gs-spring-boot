@@ -11,7 +11,7 @@ public class Order implements Comparable<Order> {
     @Min(1)
     public int quantity;
 
-    @Action
+   // @Action
     public String action;
     public LocalDateTime orderDate;
 

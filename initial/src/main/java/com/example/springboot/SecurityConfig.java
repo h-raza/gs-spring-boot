@@ -23,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
                        .addFilterAfter(new JWTAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
                         .authorizeRequests()
                         .antMatchers(HttpMethod.POST, "/createUser").permitAll()
+                        .antMatchers(HttpMethod.POST, "/user").permitAll()
                         .anyRequest().authenticated();
             }
         }

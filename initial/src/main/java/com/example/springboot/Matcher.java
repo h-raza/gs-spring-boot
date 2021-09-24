@@ -13,6 +13,7 @@ public class Matcher {
     private static ArrayList<Trade> tradeHistory;
     private static Map<Integer, Integer> aggBuyList;
     private static Map<Integer, Integer> aggSellList;
+    private static ArrayList<PrivateOrder> privateOrders;
 
     public Matcher() {
         buyOrder = new ArrayList<>(); // Array to store buy orders
@@ -20,6 +21,7 @@ public class Matcher {
         tradeHistory = new ArrayList<>(); // Array to store successful trades
         aggSellList = new HashMap<>(); // Dictionary to store aggregated sell orders
         aggBuyList = new HashMap<>(); // Dictionary to store aggregated buy orders
+        privateOrders= new ArrayList<>(); //Arraylist to store the private orders
     }
 
     // Getter for the buy list
@@ -64,6 +66,14 @@ public class Matcher {
         Matcher.aggSellList = aggSellList;
     }
 
+    // Getter for privateOrders
+    public  ArrayList<PrivateOrder> getPrivateOrders() {
+        return privateOrders;
+    }
+    //Setter for privateOrders
+    public  void setPrivateOrders(ArrayList<PrivateOrder> privateOrders) {
+        Matcher.privateOrders = privateOrders;
+    }
 
     /**
      * Compare function to sort the lists out in price order and then in date order
@@ -262,6 +272,22 @@ public class Matcher {
     public void sortSell(){
         sellOrder.sort((Order a, Order b)-> compareTo(a,b));
     };
+
+    public ArrayList<PrivateOrder> privateOrders(String account){
+        for(int i=0; i< getBuyOrder().size();i++){
+            if(getBuyOrder().get(i).account.equalsIgnoreCase(account)){
+                privateOrders.add(new PrivateOrder(getBuyOrder().get(i).price,getBuyOrder().get(i).quantity,getBuyOrder().get(i).action));
+            }
+        }
+
+        for(int i=0; i< getSellOrder().size();i++){
+            if(getSellOrder().get(i).account.equalsIgnoreCase(account)){
+                privateOrders.add(new PrivateOrder(getSellOrder().get(i).price,getSellOrder().get(i).quantity,getSellOrder().get(i).action));
+            }
+        }
+
+        return privateOrders;
+    }
 
 
 

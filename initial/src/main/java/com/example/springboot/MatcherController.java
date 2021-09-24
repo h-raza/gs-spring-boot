@@ -1,25 +1,29 @@
 package com.example.springboot;
+import com.sun.source.doctree.AuthorTree;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.validation.constraints.*;
 
-
+@Validated
 @RestController
 public class MatcherController {
-	Matcher matcher=new Matcher();
+	Matcher matcher = new Matcher();
 
 	@Autowired
 	UserService userService;
 
 
-	public static HashMap<String, String> userList = new HashMap<>();
+	public static ArrayList<User> userList = new ArrayList<>();
 
 //	public static void createUserList() {
 //		User user1=new User("Tom", "England123");
@@ -41,58 +45,51 @@ public class MatcherController {
 	public ArrayList<Order> getBuyOrder() {
 		return matcher.getBuyOrder();
 	}
+
 	@GetMapping("/getSellOrder/")
 	public ArrayList<Order> getSellOrder() {
 		return matcher.getSellOrder();
 	}
 
 
+	@PostMapping("/createOrder/")
+	public ArrayList<Order> createBuyOrder(@RequestParam("price") @Min(5) Integer price, @RequestParam("quantity") @Min(1) Integer quantity, @RequestParam("action") @Action String action, @RequestHeader String Authorization) {
 
-	@PostMapping("/createBuyOrder/")
-	public ArrayList<Order> createBuyOrder(@Valid @RequestBody Order newOrder ){
-		System.out.println("It got to here");
-		System.out.println(newOrder);
-		matcher.validityCheck(newOrder);
-		System.out.println(ResponseEntity.ok("Valid"));
+		System.out.println(price);
+		System.out.println();
+		for (User user : userService.findAll()) {
+			System.out.println(user.getUsername());
+			System.out.println(user.getToken());
+			System.out.println(Authorization);
+			if (user.getToken().equals(Authorization)) {
+				System.out.println("it has reached this stage");
+				matcher.validityCheck(new Order(user.getUsername(), price, quantity, action));
+			}
+		}
 		return matcher.getBuyOrder();
 	}
-	@PostMapping("/createSellOrder/")
-	public ArrayList<Order> createSellOrder(@Valid @RequestBody Order newOrder ){
-		System.out.println(newOrder);
-		matcher.validityCheck(newOrder);
-		return matcher.getSellOrder();
-	}
 
 
-	@PostMapping("/user")
-	public String enterUser(@RequestBody User user) {
-		//@RequestParam ("user") String username, @RequestParam ("password") String password
+	@PostMapping("user")
+	public String enterUser(@RequestParam("user") String username, @RequestParam("password") String password) {
 		System.out.println("got here");
-		String token = getJWTToken(user.getUsername());
-//		User user = new User();
-//		user.setUsername(username);
-//		user.setPassword(password);
-		//user.setToken(token);
-		return token;
+		for (User user : userService.findAll()) {
+			if (user.getUsername().equals(username)) {
+				String token = getJWTToken(username);
+				if (user.getPassword().equals(password)) {
+					System.out.println(user.getUsername() + "This is the username for the account");
+					user.setToken(token);
+					userService.saveOrUpdate(user);
+					System.out.println(user.getToken() + "THIS IS THE TOKEN FOR THE USER");
+					return token;
+				} else {
+					return "Incorrect username or password";
+				}
+			}
+		}
+
+		return "Please create an account first";
 	}
-
-
-//		//createUserList();
-//		List<User> UserIterable= userService.findAll();
-//		for (int i = 0; i< UserIterable.size(); i++){
-//			if(UserIterable.get(i).getUsername().equals(username)){
-//				//currentUser.setToken();
-//			return true;
-//			} else if(i==UserIterable.size()-1){
-//				return false;
-//			}
-//
-//		}
-//		if(userList.containsKey(currentUser.getUsername()) && currentUser.getPassword().equals(userList.get(currentUser.getUsername())) ){
-//			long token=Math.round(Math.random()*(100000-4500));
-//			return Long.toString((token));
-//		} else return "Password doesn't match";
-		//return true;
 
 
 	private String getJWTToken(String username) {
@@ -117,30 +114,38 @@ public class MatcherController {
 	}
 
 
-
-
 	@PostMapping("/createUser")
-	public String createUser(@RequestBody User newUser){
-		System.out.println(newUser);
-		userService.saveOrUpdate(newUser);
-		return "Users have been updated";
+	public String createUser(@RequestParam("username") String username, @RequestParam("password") String password) {
+		System.out.println(userService.findAll());
+		if (userService.findAll().size() == 0) {
+			userService.saveOrUpdate(new User(username, password));
+			return "New User has been created";
+		} else {
+			for (User user : userService.findAll()) {
+				//System.out.println(user.getUsername()+"This is the user");
+
+				if (username.equalsIgnoreCase(user.getUsername())) {
+					System.out.println("Username of the loop" + ":" + user.getUsername());
+
+					return "Username already taken";
+				} else {
+					System.out.println("Got here");
+					userService.saveOrUpdate(new User(username, password));
+
+					return "New User has been created";
+				}
+			}
+		}
+
+		return "Error something has gone wrong";
 	}
 
-//	@GetMapping("/getUser/{username}")
-//	public User getUser(@PathVariable("username") String username) {
-//		System.out.println(username);
-//		//System.out.println(userService.getUserByUsername(Username));
-//		return userService.getUserByUsername(username);
-//	}
 
 	@GetMapping("/getUser/")
 	public ArrayList<User> getUser() {
-		//System.out.println(username);
-		//System.out.println(userService.getUserByUsername(Username));
-
-		ArrayList<User> usernameList=new ArrayList<>();
-		Iterable<User> UserIterable= userService.findAll();
-		for (User user:UserIterable){
+		ArrayList<User> usernameList = new ArrayList<>();
+		Iterable<User> UserIterable = userService.findAll();
+		for (User user : UserIterable) {
 			System.out.println(user.getUsername());
 			usernameList.add(user);
 		}
@@ -148,4 +153,17 @@ public class MatcherController {
 		return usernameList;
 	}
 
+	@PostMapping("/privateOrders/")
+	public ArrayList<PrivateOrder> privateOrders(@RequestHeader String Authorization) {
+		for (User user : userService.findAll()) {
+			if (user.getToken().equals(Authorization)) {
+				System.out.println("it has reached this stage");
+				matcher.privateOrders(user.getUsername());
+			}
+		}
+		return matcher.getPrivateOrders();
+	}
 }
+
+
+
