@@ -1,7 +1,10 @@
 package com.example.springboot;
 
 import javax.validation.constraints.*;
-import java.time.LocalDateTime;
+//import java.time.LocalDateTime;
+import java.sql.Timestamp;
+import java.time.*;
+import java.util.*;
 
 public class Order implements Comparable<Order> {
     @Size(min=1)
@@ -13,15 +16,18 @@ public class Order implements Comparable<Order> {
 
    // @Action
     public String action;
-    public LocalDateTime orderDate;
+    public Date orderDate=new Date();
 
+
+    public Order(){
+
+    }
 
     public Order(String account, int price, int quantity, String action) {
         this.account = account;
         this.price = price;
         this.quantity = quantity;
         this.action = action;
-        this.orderDate= LocalDateTime.now();
     }
 
     @Override
@@ -31,7 +37,7 @@ public class Order implements Comparable<Order> {
                 ", price=" + price +
                 ", quantity=" + quantity +
                 ", action='" + action + '\'' +
-                ", orderDate=" + orderDate +
+               ", orderDate=" + orderDate +
                 '}';
     }
 

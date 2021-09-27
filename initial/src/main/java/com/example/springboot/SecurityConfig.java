@@ -22,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
                 http.csrf().disable()
                        .addFilterAfter(new JWTAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
                         .authorizeRequests()
+                        .antMatchers(HttpMethod.POST,"/firebaseCreateOrder/").permitAll()
+                        .antMatchers(HttpMethod.GET,"/getOrderFirebase/").permitAll()
                         .antMatchers(HttpMethod.POST, "/createUser").permitAll()
                         .antMatchers(HttpMethod.POST, "/user").permitAll()
                         .anyRequest().authenticated();

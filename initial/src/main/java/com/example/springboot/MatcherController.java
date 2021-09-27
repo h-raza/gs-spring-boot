@@ -1,16 +1,14 @@
 package com.example.springboot;
-import com.sun.source.doctree.AuthorTree;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import javax.validation.Valid;
+
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import javax.validation.constraints.*;
 
@@ -21,6 +19,10 @@ public class MatcherController {
 
 	@Autowired
 	UserService userService;
+
+	@Autowired
+	FirebaseService firebaseService;
+
 
 
 	public static ArrayList<User> userList = new ArrayList<>();
@@ -162,6 +164,23 @@ public class MatcherController {
 			}
 		}
 		return matcher.getPrivateOrders();
+	}
+
+
+	@PostMapping("/firebaseCreateOrder/")
+	public void createOrderFirebase(@RequestBody  Order order) throws ExecutionException, InterruptedException {
+		//System.out.println("recieved in the controller");
+		matcher.validityCheck(order);
+		System.out.println(matcher.getBuyOrder()+"This is a list of buy orders");
+		firebaseService.postArray(matcher.getBuyOrder());
+		//return firebaseService.postArray(order);
+	}
+
+	@GetMapping("/getOrderFirebase/")
+	public void getOrderFirebase(@RequestParam("name") String name) throws ExecutionException, InterruptedException {
+		//return firebaseService.getOrder(name);
+		firebaseService.loop(name);
+
 	}
 }
 
