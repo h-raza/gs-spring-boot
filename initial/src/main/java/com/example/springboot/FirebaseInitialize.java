@@ -17,7 +17,7 @@ public class FirebaseInitialize {
     public void initialize(){
         try{
         FileInputStream serviceAccount =
-                new FileInputStream("C:\\Dev\\gs-spring-boot\\initial\\serviceAccountKey.json");
+                new FileInputStream("C:\\Users\\mraza\\OneDrive - Scott Logic Ltd\\Desktop\\serviceAccountKey.json");
 
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
