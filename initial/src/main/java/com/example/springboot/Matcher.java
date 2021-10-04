@@ -1,5 +1,6 @@
 package com.example.springboot;
 
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -125,14 +126,16 @@ public class Matcher {
      * @param {Order} newOrder The input for the new order.
      **/
     public boolean validityCheck(Order newOrder){
-        //System.out.println("This is order");
+        //System.out.println(newOrder+"This is order");
         //System.out.println(newOrder);
 
         if(newOrder.quantity<0 || newOrder.price<0){
             return false;
-        } else if(!Objects.equals(newOrder.action, "Buy") && !Objects.equals(newOrder.action, "Sell")){
+        } else if(!Objects.equals(newOrder.action, "buy") && !Objects.equals(newOrder.action, "sell")){
+
             return false;
         } else{
+
             checkMatch(newOrder);
             return true;
         }
@@ -146,7 +149,7 @@ public class Matcher {
      **/
     public void checkMatch(Order newOrder){
 
-        if(Objects.equals(newOrder.action, "Buy")) {
+        if(Objects.equals(newOrder.action, "buy")) {
             if (sellOrder.size() == 0) {
                 buyOrder.add(newOrder);
             } else {
@@ -158,7 +161,7 @@ public class Matcher {
                     }
                 }
             }
-        } else if (Objects.equals(newOrder.action, "Sell")){
+        } else if (Objects.equals(newOrder.action, "sell")){
             if(buyOrder.size()==0){
                 sellOrder.add(newOrder);
             } else {
@@ -243,12 +246,12 @@ public class Matcher {
      * list that shows the quantity of orders for a specific price
      **/
     public void aggBuy(){
-        for(int i=0; i<buyOrder.size();i++){
-            if (aggBuyList.get(buyOrder.get(i).price)==null){
-                aggBuyList.put(buyOrder.get(i).price,buyOrder.get(i).quantity);
-            } else{
+        for (Order order : buyOrder) {
+            if (aggBuyList.get(order.price) == null) {
+                aggBuyList.put(order.price, order.quantity);
+            } else {
                 System.out.println(aggSellList);
-                aggBuyList.put(buyOrder.get(i).price,aggBuyList.get(buyOrder.get(i).price)+buyOrder.get(i).quantity);
+                aggBuyList.put(order.price, aggBuyList.get(order.price) + order.quantity);
             }
         }
     }

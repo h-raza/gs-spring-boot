@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class FirebaseService {
-    public Order saveOrder(Order order) throws ExecutionException, InterruptedException {
+    public Order saveBuyOrder(Order order) throws ExecutionException, InterruptedException {
 
         Firestore dbFfirestore= FirestoreClient.getFirestore();
         System.out.println(order+"This is the order");
@@ -22,6 +22,15 @@ public class FirebaseService {
                 order.account).set(order);
         System.out.println("GOT TO THE SERVICE BIT");
        return order;
+    }
+    public Order saveSellOrder(Order order) throws ExecutionException, InterruptedException {
+
+        Firestore dbFfirestore= FirestoreClient.getFirestore();
+        System.out.println(order+"This is the order");
+        ApiFuture<WriteResult> collectionsApiFuture= dbFfirestore.collection("SellOrders").document(
+                order.account).set(order);
+        System.out.println("GOT TO THE SERVICE BIT");
+        return order;
     }
 
     public Order getOrder(String name) throws ExecutionException, InterruptedException {
@@ -32,7 +41,7 @@ public class FirebaseService {
 
         DocumentSnapshot document=future.get();
         System.out.println(document);
-       // Order order= new Order("hello",0,0,"Buy");
+
 
         if(document.exists()){
             Order order=document.toObject(Order.class);
@@ -57,6 +66,7 @@ public class FirebaseService {
     }
 
     public void postArray(ArrayList<Order>  orderList ) throws ExecutionException, InterruptedException {
+        System.out.println("got to here");
              Firestore dbFirestore=FirestoreClient.getFirestore();
         CollectionReference collectionReference=dbFirestore.collection("BuyOrders");
         ApiFuture<QuerySnapshot> future=collectionReference.get();

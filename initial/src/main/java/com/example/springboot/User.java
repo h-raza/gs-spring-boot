@@ -35,6 +35,9 @@ public class User {
         this.token=null;
     }
 
+    public User(Object username, Object password) {
+    }
+
 
     public Integer getId() {
         return Id;
