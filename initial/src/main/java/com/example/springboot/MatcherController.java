@@ -62,7 +62,7 @@ public class MatcherController {
 
 
 	@PostMapping("/createOrder/")
-	public ArrayList<Order> createBuyOrder(@RequestParam("price") @Min(5) Integer price, @RequestParam("quantity") @Min(1) Integer quantity, @RequestParam("action") @Action String action, @RequestHeader String Authorization) {
+	public ArrayList<Order> createBuyOrder(@RequestParam("price") @Min(5) Integer price, @RequestParam("quantity") @Min(1) Integer quantity, @RequestParam("action") @Action String action, @RequestHeader String Authorization) throws ExecutionException, InterruptedException {
 
 		System.out.println(price);
 		System.out.println();
@@ -179,7 +179,7 @@ public class MatcherController {
 		//System.out.println("recieved in the controller");
 		matcher.validityCheck(order);
 		System.out.println(matcher.getBuyOrder() + "This is a list of buy orders");
-		firebaseService.postArray(matcher.getBuyOrder());
+		//firebaseService.postArray(matcher.getBuyOrder());
 		//return firebaseService.postArray(order);
 	}
 
@@ -267,13 +267,20 @@ public class MatcherController {
 		System.out.println(orderMap+"THIS IS THE ORDER");
 
 		Order order=new Order((String) orderMap.get("account"),(Integer) orderMap.get("price"),(Integer) orderMap.get("quantity"), (String) orderMap.get("action"));
-		System.out.println(order+"this si the order");
-		Thread.sleep(1000);
+		//System.out.println(order+"this si the order");
+
 		matcher.validityCheck(order);
 		matcher.aggBuy();
 		matcher.aggSell();
-		System.out.println(matcher.getBuyOrder()+"this is the buy order from the backend");
-		
+
+		//System.out.println(matcher.getAggBuyList() +"THIS IS THE AGG BUY LIST");
+		//System.out.println(matcher.getBuyOrder()+"this is the buy order from the backend");
+
+		//firebaseService.saveBuyOrder(order);
+		//firebaseService.loop("BuyOrders");
+		//System.out.println(firebaseService.size("SellOrders"));
+		//firebaseService.postArray();
+
 
 
 

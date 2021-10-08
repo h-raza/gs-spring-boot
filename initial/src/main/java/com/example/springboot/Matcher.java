@@ -1,12 +1,22 @@
 package com.example.springboot;
 
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.*;
+import com.google.firebase.cloud.FirestoreClient;
+import org.apache.tomcat.util.http.ResponseUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+
 
 public class Matcher {
+    @Autowired
+    private static FirebaseService firebaseService;
 
 
     private static ArrayList<Order> buyOrder;
@@ -23,7 +33,13 @@ public class Matcher {
         aggSellList = new HashMap<>(); // Dictionary to store aggregated sell orders
         aggBuyList = new HashMap<>(); // Dictionary to store aggregated buy orders
         privateOrders= new ArrayList<>(); //Arraylist to store the private orders
+        firebaseService=new FirebaseService(); // Firebase database
+
     }
+    Firestore dbFirestore= FirestoreClient.getFirestore();
+    CollectionReference buyCollectionReference=dbFirestore.collection("BuyOrders");
+    CollectionReference sellCollectionReference=dbFirestore.collection("SellOrders");
+
 
     // Getter for the buy list
     public ArrayList<Order> getBuyOrder() {
@@ -125,16 +141,19 @@ public class Matcher {
      * Checks if the input data is valid.
      * @param {Order} newOrder The input for the new order.
      **/
-    public boolean validityCheck(Order newOrder){
-        //System.out.println(newOrder+"This is order");
+    public boolean validityCheck(Order newOrder) throws ExecutionException, InterruptedException {
+       // System.out.println(newOrder+"This is order");
         //System.out.println(newOrder);
+
+
 
         if(newOrder.quantity<0 || newOrder.price<0){
             return false;
-        } else if(!Objects.equals(newOrder.action, "buy") && !Objects.equals(newOrder.action, "sell")){
+        } else if(!Objects.equals(newOrder.action, "Buy") && !Objects.equals(newOrder.action, "Sell")){
 
             return false;
         } else{
+
 
             checkMatch(newOrder);
             return true;
@@ -147,31 +166,47 @@ public class Matcher {
      * Checks if there is a match for the new order.
      * @param {Order} newOrder The input for the new order.
      **/
-    public void checkMatch(Order newOrder){
+    public void checkMatch(Order newOrder) throws ExecutionException, InterruptedException {
+        Firestore dbFirestore= FirestoreClient.getFirestore();
+        CollectionReference buyCollectionReference=dbFirestore.collection("BuyOrders");
+        CollectionReference sellCollectionReference=dbFirestore.collection("SellOrders");
+        ApiFuture<QuerySnapshot> futureBuy=buyCollectionReference.get();
+        ApiFuture<QuerySnapshot> futureSell=sellCollectionReference.get();
+        QuerySnapshot referenceBuy=futureBuy.get();
+        QuerySnapshot referenceSell=futureSell.get();
 
-        if(Objects.equals(newOrder.action, "buy")) {
-            if (sellOrder.size() == 0) {
-                buyOrder.add(newOrder);
+        if(Objects.equals(newOrder.action, "Buy")) {
+
+            if (firebaseService.size("SellOrders") == 0) {
+                firebaseService.saveBuyOrder(newOrder);
+
             } else {
-                for (int i = 0; i < sellOrder.size(); i++) {
-                    if (newOrder.price >= sellOrder.get(i).price) {
-                        buyMatch(newOrder, sellOrder.get(i));
-                    } else if (i == sellOrder.size() - 1 && newOrder.price < sellOrder.get(i).price) {
-                        buyOrder.add(newOrder);
+                for (int i = 0; i < firebaseService.size("SellOrders"); i++) {
+                    if (newOrder.price >= referenceSell.getDocuments().get(i).toObject(Order.class).price) {
+                        buyMatch(newOrder, referenceSell.getDocuments().get(i).toObject(Order.class),referenceSell.getDocuments().get(i));
+
+                    } else if (i == firebaseService.size("SellOrders") - 1 && newOrder.price < referenceSell.getDocuments().get(i).toObject(Order.class).price) {
+                        firebaseService.saveBuyOrder(newOrder);
                     }
                 }
             }
-        } else if (Objects.equals(newOrder.action, "sell")){
-            if(buyOrder.size()==0){
-                sellOrder.add(newOrder);
+        } else if (Objects.equals(newOrder.action, "Sell")){
+            System.out.println("enters the sell function");
+            if(firebaseService.size("BuyOrders")==0){
+                firebaseService.saveSellOrder(newOrder);
+                System.out.println("gets to the if statement");
             } else {
-                for(int i=0; i<buyOrder.size();i++){
-                    if(newOrder.price<= buyOrder.get(i).price){
+                for(int i=0; i<firebaseService.size("BuyOrders");i++){
+                    if(newOrder.price<= referenceBuy.getDocuments().get(i).toObject(Order.class).price){
 
-                        sellMatch(newOrder,buyOrder.get(i));
+                        sellMatch(newOrder,referenceBuy.getDocuments().get(i).toObject(Order.class),referenceBuy.getDocuments().get(i));
+
+                        System.out.println(referenceBuy.getDocuments().get(i));
+                        System.out.println(referenceBuy.getDocuments().get(i).getClass()+"THIS IS THE CLASS OF THE ORDER");
                         break;
-                    } else if(i==buyOrder.size()-1 && newOrder.price>buyOrder.get(i).price){
-                        sellOrder.add(newOrder);
+                    } else if(i==firebaseService.size("BuyOrders")-1 && newOrder.price>referenceBuy.getDocuments().get(i).toObject(Order.class).price){
+
+                        firebaseService.saveSellOrder(newOrder);
                     }
                 }
 
@@ -187,17 +222,19 @@ public class Matcher {
      * @param {Order} newOrder New Order being compared.
      * @param {Order} ExistingOrder Existing Order being compared.
      **/
-    public void buyMatch(Order newOrder, Order existingOrder){
+    public void buyMatch(Order newOrder, Order existingOrder, QueryDocumentSnapshot existingOrderObject) throws ExecutionException, InterruptedException {
         if(newOrder.quantity==existingOrder.quantity){
             createTrade(newOrder,existingOrder, newOrder.quantity);
-            sellOrder.remove(sellOrder.indexOf(existingOrder));
+            existingOrderObject.getReference().delete();
+            //sellOrder.remove(sellOrder.indexOf(existingOrder));
         } else if(newOrder.quantity< existingOrder.quantity){
             createTrade(newOrder,existingOrder, newOrder.quantity);
             existingOrder.quantity= existingOrder.quantity- newOrder.quantity;
         } else {
             createTrade(newOrder, existingOrder, existingOrder.quantity);
             newOrder.quantity = newOrder.quantity - existingOrder.quantity;
-            sellOrder.remove(sellOrder.indexOf(existingOrder));
+            existingOrderObject.getReference().delete();
+            //sellOrder.remove(sellOrder.indexOf(existingOrder));
             checkMatch(newOrder);
         }
     }
@@ -210,17 +247,19 @@ public class Matcher {
      * @param {Order} newOrder New Order being compared.
      * @param {Order} ExistingOrder Existing Order being compared.
      **/
-    public void sellMatch(Order newOrder, Order existingOrder) {
+    public void sellMatch(Order newOrder, Order existingOrder, QueryDocumentSnapshot existingOrderObject) throws ExecutionException, InterruptedException {
         if (newOrder.quantity == existingOrder.quantity) {
             createTrade(newOrder, existingOrder, newOrder.quantity);
-            buyOrder.remove(buyOrder.indexOf(existingOrder));
+            existingOrderObject.getReference().delete();
+           // buyOrder.remove(buyOrder.indexOf(existingOrder));
         } else if (newOrder.quantity < existingOrder.quantity) {
             createTrade(newOrder, existingOrder, newOrder.quantity);
             existingOrder.quantity = existingOrder.quantity - newOrder.quantity;
         } else {
             createTrade(newOrder, existingOrder, existingOrder.quantity);
             newOrder.quantity = newOrder.quantity - existingOrder.quantity;
-            buyOrder.remove(buyOrder.indexOf(existingOrder));
+            existingOrderObject.getReference().delete();
+            //buyOrder.remove(buyOrder.indexOf(existingOrder));
             checkMatch(newOrder);
         }
     }
@@ -229,13 +268,25 @@ public class Matcher {
     /** Adds the orders from the buy list into an aggregated
      * list that shows the quantity of orders for a specific price
      **/
-    public void aggSell(){
-        for(int i=0; i<sellOrder.size();i++){
-            if (aggSellList.get(sellOrder.get(i).price)==null){
-                aggSellList.put(sellOrder.get(i).price,sellOrder.get(i).quantity);
+    public void aggSell() throws ExecutionException, InterruptedException {
+        aggSellList.clear();
+        ApiFuture<QuerySnapshot> futureSell=sellCollectionReference.get();
+        QuerySnapshot referenceSell=futureSell.get();
+
+
+        for(DocumentSnapshot orderObject: referenceSell){
+            System.out.println(orderObject.toObject((Order.class)));
+            int price= Objects.requireNonNull(orderObject.toObject(Order.class)).price;
+            int quantity= Objects.requireNonNull(orderObject.toObject(Order.class)).quantity;
+
+            if (aggSellList.get(price)==null){
+                aggSellList.put(price,quantity);
+                System.out.println(aggSellList+ "  THIS IS THE AGG LIST 2");
             } else{
-                System.out.println(aggSellList);
-                aggSellList.put(sellOrder.get(i).price,aggSellList.get(sellOrder.get(i).price)+sellOrder.get(i).quantity);
+                System.out.println(aggSellList.get(price)+"THIS IS THE PRICE");
+                System.out.println(quantity+"  THIS IS THE QUANTITY");
+                aggSellList.put(price,aggSellList.get(price)+quantity);
+                System.out.println(aggSellList+ "  THIS IS THE AGG LIST 3");
             }
         }
     }
@@ -245,16 +296,29 @@ public class Matcher {
     /** Adds the orders from the buy list into an aggregated
      * list that shows the quantity of orders for a specific price
      **/
-    public void aggBuy(){
-        for (Order order : buyOrder) {
-            if (aggBuyList.get(order.price) == null) {
-                aggBuyList.put(order.price, order.quantity);
-            } else {
-                System.out.println(aggSellList);
-                aggBuyList.put(order.price, aggBuyList.get(order.price) + order.quantity);
+    public void aggBuy() throws ExecutionException, InterruptedException {
+        aggBuyList.clear();
+        ApiFuture<QuerySnapshot> futureBuy=buyCollectionReference.get();
+        QuerySnapshot referenceBuy=futureBuy.get();
+
+
+        for(DocumentSnapshot orderObject: referenceBuy){
+            System.out.println(orderObject.toObject((Order.class)));
+            int price= Objects.requireNonNull(orderObject.toObject(Order.class)).price;
+            int quantity= Objects.requireNonNull(orderObject.toObject(Order.class)).quantity;
+
+            if (aggBuyList.get(price)==null){
+                aggBuyList.put(price,quantity);
+                System.out.println(aggBuyList+ "  THIS IS THE AGG LIST 2");
+            } else{
+                System.out.println(aggBuyList.get(price)+"THIS IS THE PRICE");
+                System.out.println(quantity+"  THIS IS THE QUANTITY");
+                aggBuyList.put(price,aggBuyList.get(price)+quantity);
+                System.out.println(aggBuyList+ "  THIS IS THE AGG LIST 3");
             }
         }
-    }
+        }
+
 
     /**
      * Sorts the buy array with high prices to low prices
@@ -294,8 +358,8 @@ public class Matcher {
 
 
 
-    public void main(String[] args){
-      // validityCheck(createOrder("Hassan",5,555,"Buy")) ;
+    public void main(String[] args) throws ExecutionException, InterruptedException {
+    //  firebaseService.saveBuyOrder(createOrder("Ali",5,555,"Buy")) ;
 
 
 
